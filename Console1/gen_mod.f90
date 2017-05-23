@@ -15,5 +15,5 @@ complex(8),PARAMETER :: c0=(0.0d0,0.0d0)
 complex(8),PARAMETER :: c1=(1.0d0,0.0d0)
 complex(8),PARAMETER :: c2=(2.0d0,0.0d0)
 complex(8),PARAMETER :: c3=(3.0d0,0.0d0)
-real(8),PARAMETER :: eps = 0.000010d0          ! эпсюлон, беск. мал. величина
+real(8),PARAMETER :: eps = 0.000010d0          ! epsulon besk. malaya
 end module gen_mod
