@@ -12,7 +12,7 @@ real(8),PARAMETER :: l_1 = 1.0d0                ! lenght of plate / длина пласти
 real(8),PARAMETER :: l_2 = 0.10d0               ! lenght of flap / длина закрылка
 real(8),PARAMETER :: v_inf = 1.0d0              ! velocity in infinity / скорость на бесконечности
 real(8),PARAMETER :: delta = 1.30d0             ! coef of the deflection angle of the flap / коэф угола отклонения закрылка delta = [1, 1.5], (delta * pi -- угол)
-real(8),PARAMETER :: alpha = pi / 6             ! angle of attack / угол атаки
+real(8),PARAMETER :: alpha = pi/6               ! angle of attack / угол атаки
 real(8),PARAMETER :: h = 0.10d0                 ! width of channel / ширина канала
 real(8),PARAMETER :: l_3=h/dsin(delta*pi-pi)    ! leght of gap / длина щели
 
