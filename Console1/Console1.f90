@@ -31,8 +31,9 @@
     program Console1     
     ! подключение модуля с константами и реализованными подпрограммами (IMSL)
     use mod
-    real(8) s_g
-    external s_g
+    real(8) s_g, a, b
+    complex(8) proof_z, z
+    external s_g, z
     port = 1
     
     ! начальное приближение
@@ -48,6 +49,15 @@
     print *, "l3 real = ", l_3
     print *, "l3 inte = ",  (l_1 - s_g(ga, gc))
     call v_s
+    call current_lines
+    print *, "beta = ", beta
+    print *, "arg_C = ", arg_C
+    
+    proof_z = z(cdexp(ii * ga))
+    a = dreal(proof_z)
+    b = dimag(proof_z)
+    print *, "proof_z = ", proof_z, (a * a + b * b)
+    !call find_shape_of_plast
     ! проверки    
     !call test_newtone
     !call test_integ

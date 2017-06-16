@@ -16,7 +16,7 @@ real(8),PARAMETER :: alpha = pi/6               ! angle of attack / угол атаки
 real(8),PARAMETER :: h = 0.10d0                 ! width of channel / ширина канала
 real(8),PARAMETER :: l_3=h/dsin(delta*pi-pi)    ! leght of gap / длина щели
 
-integer(4),PARAMETER :: nmax = 201
+integer(4),PARAMETER :: nmax = 101
 
 ! unknown parameters
 real(8) beta, u_inf                             ! angle of attack and velocity in inf in parametric plane / угол атаки и скорость на бесконечности в параметрической плоскости

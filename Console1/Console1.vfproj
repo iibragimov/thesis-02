@@ -26,12 +26,17 @@
 	<Files>
 		<Filter Name="Header Files" Filter="fi;fd">
 		<File RelativePath=".\gen_mod.f90"/>
+		<File RelativePath=".\lines_mod.f90"/>
 		<File RelativePath=".\mod.f90"/></Filter>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 		<File RelativePath=".\checked.f90"/>
 		<File RelativePath=".\Console1.f90"/>
+		<File RelativePath=".\current_lines.f90"/>
 		<File RelativePath=".\func.f90"/>
-		<File RelativePath=".\mymeth.f90"/></Filter>
+		<File RelativePath=".\lines_func.f90"/>
+		<File RelativePath=".\mymeth.f90"/>
+		<File RelativePath=".\unknown_const.f90"/>
+		<File RelativePath=".\unknown_params.f90"/></Filter>
 		<File RelativePath=".\ReadMe.txt"/></Files>
 	<Globals/></VisualStudioProject>

@@ -197,7 +197,7 @@ use gen_mod
 real(8) d_int
 integer(4) nt       !число точек
 real(8) tj(nt)      !дуговая абсцисса 
-real(8) f(nt)    !функция f(t)
+real(8) f(nt)       !функция f(t)
 real(8) t0,t1       !пределы интегрирования 
 real(8) bb(nt),cc(4,nt)
 call dcsakm(nt,tj,f,bb,cc)
