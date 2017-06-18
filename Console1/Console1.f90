@@ -29,11 +29,10 @@
 !****************************************************************************
 
     program Console1     
-    ! подключение модуля с константами и реализованными подпрограммами (IMSL)
+    !подключение модуля с константами и реализованными подпрограммами (IMSL)
     use mod
-    real(8) s_g, a, b
-    complex(8) proof_z, z
-    external s_g, z
+    
+    !индекс для записи в файл
     port = 1
     
     ! начальное приближение
@@ -43,24 +42,18 @@
     gm = 7.5d0/4.0d0*pi
     mod_C = d5
     
+    !поиск констант    
     call find_const(ga, gb, gc, gm, mod_C)
     
-    print *, "go = ", go / pi * 180
-    print *, "l3 real = ", l_3
-    print *, "l3 inte = ",  (l_1 - s_g(ga, gc))
+    !распределение скорости по пластине
     call v_s
-    call current_lines
-    print *, "beta = ", beta
-    print *, "arg_C = ", arg_C
     
-    proof_z = z(cdexp(ii * ga))
-    a = dreal(proof_z)
-    b = dimag(proof_z)
-    print *, "proof_z = ", proof_z, (a * a + b * b)
-    !call find_shape_of_plast
-    ! проверки    
-    !call test_newtone
-    !call test_integ
+    !линии тока
+    call current_lines
+    
+    ! запись в файл координаты пластины
+    call find_shape_of_plast
+    
     end program
     
    

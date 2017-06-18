@@ -23,14 +23,13 @@ gm = x(4)
 mod_C = x(5)
 
 !! проверка метода ньютона, не совсем корректно
-test = - cdexp(ii * gm) + (d2 - delta) * cdexp(ii * gc) + c1 + (delta - d1) * cdexp(ii * gb) + cdexp(ii * ga)
+test = -cdexp(ii * gm) + (d2 - delta) * cdexp(ii * gc) + c1 + (delta - d1) * cdexp(ii * gb) + cdexp(ii * ga)
 print *, 'test = ', test
 
 arg_C = -d5 * (ga + (delta - d1) * gb + (d2 - delta)* gc - gm) + (3 / d2 - delta) * pi
 u_inf = mod_C * v_inf
 beta = alpha - arg_C
 go = d2 * beta - gc + gm + pi
-print *, alpha
 
 Q = d2 * pi * u_inf * (dcos(gm - beta) - dcos(go - beta) - dcos(gc - beta) - dcos(beta))
 Gamma = d2 * pi * u_inf * (dsin(gm - beta) - dsin(go - beta) - dsin(gc - beta) + dsin(beta))

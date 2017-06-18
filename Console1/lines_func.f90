@@ -1,8 +1,8 @@
 !процедуры построения линий тока
-!subroutine init_lines_const                                                !инициализация констант   
-!subroutine find_d_direction(f_dwdz,z0,a0,b0,c)                             !нахождение направления выходящей из критической точки линии тока (обычная критическая точка, ноль первого порядка)
-!subroutine find_line(z0,dir0,kdir,zl,k,nmax,f_dwdzeta)                     !нахождение линии тока в плоскости zeta
-!subroutine find_line2(z0,zz0,dir0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta)  !нахождение линии тока в плоскости zeta и z
+!subroutine init_lines_const    !инициализация констант   
+!subroutine find_d_direction(f_dwdz,z0,a0,b0,c)  !нахождение направления выходящей из критической точки линии тока (обычная критическая точка, ноль первого порядка)
+!subroutine find_line(z0,dir0,kdir,zl,k,nmax,f_dwdzeta)  !нахождение линии тока в плоскости zeta
+!subroutine find_line2(z0,zz0,dir0,dirz0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta,f_test_stop)  !нахождение линии тока в плоскости zeta и z
 
 !!!нужно дополнительно подключить line_mod.f90 и func.f90
     
@@ -61,22 +61,25 @@ if (tt<d0) tt=tt+pi2
 f_d_dir=g-tt
 end
 
-subroutine get_lines_ds(dwdir0,ds,z,kdir,dwdir,z12,z1,f_dwdzeta)
+subroutine get_lines_ds(dwdir0,dwzdir0,ds,z,kdir,dwdir,dwzdir,z12,z1,dzdzeta_z12,f_dwdzeta,f_dzdzeta)
 !подбор адаптивного шага ds при интегрировании уравнения линий тока
-!dwdir0 - единичный вектор направления вектора скорости в текущей точке z
+!dwdir0 - единичный вектор направления вектора скорости в текущей точке z (в плоскости zeta)
+!dwzdir0 - единичный вектор направления вектора скорости в текущей точке z (в плоскости z)
 !ds - входное и выходное значение шага интегрирования 
 !z - текущая точка в плоскости zeta
 !kdir - 1 - по потоку, -1 - против потока
-!dwdir - единичный вектор направления вектора скорости в точке z1 (выходной)
+!dwdir - единичный вектор направления вектора скорости в точке z1 в плоскости zeta (выходной)
+!dwzdir - единичный вектор направления вектора скорости в точке z1 в плоскости z (выходной)
 !z12 - промежуточная точка интегрирования в плоскости zeta (выходной)
 !z1 - следующая точка интегрирования в плоскости zeta (выходной)
 !f_dwdzeta - внешняя функция dw/dzeta
+!f_dzdzeta - внешняя функция dz/dzeta
 use gen_mod
 use lines_mod
-external f_dwdzeta
-complex(8) f_dwdzeta
-complex(8) dwdir0,z,dwdir,z12,dw,z1
-real(8) ds,err_dir,adw
+external f_dwdzeta,f_dzdzeta
+complex(8) f_dwdzeta,f_dzdzeta
+complex(8) dwdir0,dwzdir0,z,dwdir,dwzdir,z12,dw,z1,dwz,dzdzeta_z12
+real(8) ds,err_dir,err_dirz,adw,adwz
 integer(4) kdir,j
 j=0
 do while(.true.)
@@ -89,30 +92,43 @@ do while(.true.)
         j=-9
     endif
     z12=z+dwdir0*ds*d5
-    dw=dconjg(f_dwdzeta(z12))*kdir
+	dw=f_dwdzeta(z12)
+	dzdzeta_z12=f_dzdzeta(z12)
+	dwz=dconjg(dw/dzdzeta_z12)*kdir
+	dw=dconjg(dw)*kdir
 	adw=cdabs(dw)
-	if (adw<1.0d-8) then
+	adwz=cdabs(dwz)
+	if (adw<1.0d-8.or.adwz<1.0d-8) then
 		dwdir=c0  !попали в критическую точку
+		dwzdir=c0
 		z1=z12
 		exit
     else
 		dwdir=dw/adw
+		dwzdir=dwz/adwz
 	endif
     err_dir=cdabs(dwdir0-dwdir)
-    if ((err_dir<=lines_eps_dir).or.(j==-9)) then
+	err_dirz=cdabs(dwzdir0-dwzdir)
+    if ((err_dir<=lines_eps_dir).or.(err_dirz<=lines_eps_dir).or.(j==-9)) then
       z1=z+dwdir*ds
-      dw=dconjg(f_dwdzeta(z1))*kdir
-	  adw=cdabs(dw)
-	  if (adw<1.0d-8) then
+	  dw=f_dwdzeta(z1)
+	  dwz=dconjg(dw/f_dzdzeta(z1))*kdir
+	  dw=dconjg(dw)*kdir
+      adw=cdabs(dw)
+	  adwz=cdabs(dwz)
+	  if (adw<1.0d-8.or.adwz<1.0d-8) then
 	      dwdir=c0   !попали в критическую точку
+		  dwzdir=c0
 		  exit
       else
 		  dwdir=dw/adw
+		  dwzdir=dwz/adwz
 	  endif
       if (j==-9) exit
       err_dir=cdabs(dwdir0-dwdir)
+	  err_dirz=cdabs(dwzdir0-dwzdir)
     endif  
-    if(err_dir>lines_eps_dir) then
+    if(err_dir>lines_eps_dir.or.err_dirz>lines_eps_dir) then
         ds=ds/lines_kk
         if (j==1) then    
             j=-9
@@ -121,7 +137,7 @@ do while(.true.)
         endif
         cycle
     endif
-    if(err_dir<lines_eps_dir*d5) then
+    if(err_dir<lines_eps_dir*d5.and.err_dirz<lines_eps_dir*d5) then
         ds=ds*lines_kk
         if (j==-1) then  
             j=-9
@@ -155,7 +171,7 @@ external f_dwdzeta,f_dzdzeta_empty,f_test_stop
 complex(8) f_dwdzeta,f_dzdzeta_empty
 logical f_test_stop
 allocate(zlz(nmax+1))
-call find_line2(z0,z0,dir0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta_empty,f_test_stop)
+call find_line2(z0,z0,dir0,dir0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta_empty,f_test_stop)
 deallocate(zlz)
 end
 
@@ -163,7 +179,7 @@ function f_dzdzeta_empty(z)
 use gen_mod
 complex(8) f_dzdzeta_empty,z, z1
 z1 = z
-f_dzdzeta_empty=c0
+f_dzdzeta_empty=c1
 end
 
 function lines_test_stop_empty(z,zz)
@@ -175,11 +191,12 @@ z1 = zz
 lines_test_stop_empty=.false.
 end
 
-subroutine find_line2(z0,zz0,dir0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta,f_test_stop)
+subroutine find_line2(z0,zz0,dir0,dirz0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta,f_test_stop)
 !нахождение линии тока в плоскости zeta и z
 !z0 - начальная точка в плоскости zeta
 !zz0 - начальная точка в плоскости z
 !dir0 - начальное направление (в плоскости zeta)
+!dirz0 - начальное направление (в плоскости z)
 !kdir - 1 - по потоку, -1 - против потока
 !zl - выходной массив точек в плоскости zeta
 !zlz - выходной массив точек в плоскости z
@@ -194,8 +211,8 @@ subroutine find_line2(z0,zz0,dir0,kdir,zl,zlz,k,nmax,f_dwdzeta,f_dzdzeta,f_test_
 use gen_mod
 use lines_mod
 integer(4) kdir,k,nmax
-complex(8) z0,zl(0:nmax),zlz(0:nmax),z12,dwdir,dwdir0,darg1,darg2,zz0
-real(8) dir0,ds,ds_end,dsqrt2,adwdir
+complex(8) z0,zl(0:nmax),zlz(0:nmax),z12,dwdir,dwdir0,darg1,darg2,zz0,dwzdir,dwzdir0,dzdzeta_z12
+real(8) dir0,ds,ds_end,dsqrt2,adwdir,dirz0 
 external f_dwdzeta,f_dzdzeta,f_test_stop
 complex(8) f_dwdzeta,f_dzdzeta
 logical f_test_stop !,qqq
@@ -204,15 +221,16 @@ ds=lines_dsmax
 zl=c0
 zl(0)=z0
 zlz(0)=zz0
-call get_lines_ds(cdexp(ii*dir0),ds,zl(0),kdir,dwdir,z12,zl(1),f_dwdzeta)
+call get_lines_ds(cdexp(ii*dir0),cdexp(ii*dirz0),ds,zl(0),kdir,dwdir,dwzdir,z12,zl(1),dzdzeta_z12,f_dwdzeta,f_dzdzeta)
 !qqq=f_test_stop(zl(1))
 ds_end=ds*d2
-zlz(1)=zlz(0)+f_dzdzeta(z12)*(zl(1)-zl(0))
+zlz(1)=zlz(0)+dzdzeta_z12*(zl(1)-zl(0))
 k=1
 do while(.true.)
     dwdir0=dwdir
-    call get_lines_ds(dwdir0,ds,zl(k),kdir,dwdir,z12,zl(k+1),f_dwdzeta)
-    zlz(k+1)=zlz(k)+f_dzdzeta(z12)*(zl(k+1)-zl(k))
+	dwzdir0=dwzdir
+    call get_lines_ds(dwdir0,dwzdir0,ds,zl(k),kdir,dwdir,dwzdir,z12,zl(k+1),dzdzeta_z12,f_dwdzeta,f_dzdzeta)
+    zlz(k+1)=zlz(k)+dzdzeta_z12*(zl(k+1)-zl(k))
     k=k+1
 	if (dwdir==d0) exit
 	adwdir=cdabs(dwdir-dwdir0)
