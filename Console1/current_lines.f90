@@ -93,6 +93,17 @@ logical lines_test_stop
 lines_test_stop = (cdabs(z) > 20.0d0) .OR. (cdabs(zz) > 20.0d0)
 end function
 
+function lines_test_stop_flow(zz, z)
+use mod
+!условие остановки при построении линии тока
+!z -- точка в плоскости z
+!zz -- точка в плоскости zeta
+use mod
+complex(8) z,zz
+logical lines_test_stop
+lines_test_stop = (dreal(z) > d0) .OR. (dreal(zz)) > d0
+end function
+
 function z_circle(g_up, g_down)
 ! z(\zeta) -- отображение по формуле Кристоффеля-Шварца на окружности
 ! g_up -- гамма, верхний предел
@@ -154,13 +165,13 @@ end subroutine
 subroutine current_lines
 !добавить параметры (x, y, z)
 use mod
-external dz_dzeta, dw_dzeta, lines_test_stop
-logical lines_test_stop
+external dz_dzeta, dw_dzeta, lines_test_stop, lines_test_stop_flow
+logical lines_test_stop, lines_test_stop_flow
 character(8) zone_name
-integer(4) i, k, zone_name_n, number_of_lines, port_z, port_zz
+integer(4) i, j, k, zone_name_n, number_of_lines, port_z, port_zz
 real(8) dir0, dirz0, dl, shag, dk
 complex(8) z0, zz0, zl(0:nmax), zlz(0:nmax), z_circle, z_plane, dw_dzeta, dz_dzeta, temp_zl_k
-complex(8) zc, tmp_z
+complex(8) zc, zm, tmp_z
 !Описание переменных
 !dw_dzeta -- dw_d\zeta функция
 !dz_dzeta -- dz_d\zeta функция
@@ -179,6 +190,7 @@ complex(8) zc, tmp_z
 !port_z -- индекс для записи в файл линий тока в плоскости z
 !port_zz -- индекс для записи в файл линий тока в плоскости zeta
 !zc -- z в точке С на пластинке
+!zm -- z в точке M на пластинке
 !tmp_z -- точке последняя в массиве zlz в первой линии
 !нахождение параметров/констант задачи
 !call find_const !возможно придется убрать и искать вне этой процедуры,тогда не нужно будет передавать xyz
@@ -238,14 +250,17 @@ end do
 
 !3. от точки С линия раздела 
 zz0 = cdexp(ii * gc)                ! пл. zeta
-z_c = -c1 + z_circle(go, ga) + z_circle(gc+eps, go) 
-z0 =  z_c !плоскость z
+zc = -c1 + z_circle(go, ga) + z_circle(gc+eps, go) 
+z0 =  zc !плоскость z
 dir0 = gc
 dirz0 = -pi * d5 * (delta - d1)    ! пл. z биссектриса угла в т. С со знаком минус (направление)
 call find_line2(zz0, z0, dir0, dirz0, 1, zl, zlz, k, nmax, dw_dzeta, dz_dzeta, lines_test_stop)
 zone_name = 'razdel'
 call save_line(port_z, k, zlz, zone_name, zone_name_n)
 call save_line(port_zz, k, zl, zone_name, zone_name_n)
+
+temp_zl_k = zl(k)
+tmp_z = zlz(k)
 
 !4. от задней кромки
 zz0 = c1
@@ -257,26 +272,31 @@ zone_name = 'sxod'
 call save_line(port_z, k, zlz, zone_name, zone_name_n)
 call save_line(port_zz, k, zl, zone_name, zone_name_n)
 
-!5. пластина и окружность
+!5. выдув струи от задней кромки и от точки С линией раздела сред
+!вычисляем значения от линии задней кромки отступаю шаги и интегрируя в обратном направлении против потока
+number_of_lines = 3
+shag = (dimag(zl(k)) - dimag(temp_zl_k)) / number_of_lines
+temp_zl_k = zl(k)
+tmp_z = zlz(k)
+do i = 1, number_of_lines + 2
+    zz0 = temp_zl_k - ii*shag*i
+    z0 = tmp_z + z_plane(zz0, temp_zl_k)
+    dir0 = -zarg(dw_dzeta(zz0))
+    dirz0 = -zarg(dz_dzeta(z0))
+    call find_line2(zz0, z0, dir0, dirz0, -1, zl, zlz, k, nmax, dw_dzeta, dz_dzeta, lines_test_stop_flow)
+    do j = 0, k
+        if (dimag(zlz(j)) > 0) then
+            zlz(j) = dreal(zlz(j)) * c1
+        end if
+    end do
+    zone_name = 'flow'
+    call save_line(port_z, k, zlz, zone_name, zone_name_n)
+    call save_line(port_zz, k, zl, zone_name, zone_name_n)
+end do
+
+!6. пластина и окружность
 call save_plastin(port_z)
 call save_circle(port_zz)
-
-!!6. выдув струи вместе с линией от задней кромки и от точки С линией раздела сред 
-!number_of_lines = 5
-!shag = (d2 * pi - gc) / (number_of_lines - 1)
-!do i = 1, number_of_lines 
-!    zz0 = cdexp(ii * (gc + shag * (i - 1)))
-!    z0 = z_c
-!    z_c = z_c + z_circle((gc + shag * i), (gc + shag * (i - 1) + eps))
-!    dir0 = -zarg(dw_dzeta(zz0))
-!    dirz0 = -zarg(dz_dzeta(z0))
-!    call find_line2(zz0, z0, dir0, dirz0, 1, zl, zlz, k, nmax, dw_dzeta, dz_dzeta, lines_test_stop)
-!    zone_name = 'flow'
-!    call save_line(port_z, k, zlz, zone_name, zone_name_n)
-!    call save_line(port_zz, k, zl, zone_name, zone_name_n)
-!end do
-!
-
 
 close(port_z)
 close(port_zz)
